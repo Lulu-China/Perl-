@@ -1,0 +1,63 @@
+use utf8;
+use Encode;
+use Cwd;
+$dir = cwd();
+opendir(Dir,$dir)or die"error in opendir";
+my @files = readdir(Dir);
+close(Dir);
+mkdir($dir."\\result"); #first mkdir and then open file
+# print $dir;
+foreach $file(@files){
+	unless($file =~ /\.XML/){
+		next;
+	}
+	my $result = $dir."\\result\\".$file.".out";
+	
+	chomp;
+	
+	open(filein,"<:encoding(utf-8)", $dir."\\".$file);
+	open(fileout, ">"."$result");
+	while(<filein>){
+		chomp;
+		if(/(<p.+">|<claim-text>)([^<\/p>]+)/){
+			push(@array,"$line");
+			$line="";
+			$line.=$2;
+		}elsif(/<br \/>([^<\/p>]+)/){
+			if($1=~/(\S+)/){
+				$line.=$1;
+			}
+		}
+		$line=~s/\<|<<|\||\{|\[/（/g;
+		$line=~s/\>|>>|\}|\]/）/g;
+	}
+	push(@arry,"$line");
+	push(@array,"$line");
+	$line="";
+	close(filein);
+	
+	foreach(@array){
+		print"$_";
+		@words=$_=~/./g;
+		foreach (@words){
+			if($_ eq " "){
+				print " ";
+			}else{
+				$word=encode("gbk",$_);
+				if(ord($word) & 0x80){
+					print fileout "$word";
+					next;
+				}else{	
+					@code=unpack("C2",$word);	
+					$word=pack("C2",0xa3,$code[0]+0x80);
+					print fileout "$word";
+				}
+			}
+		}
+	print fileout "\n";	
+	}
+	@array=();
+	close(filein);
+	close(fileout);
+}
+
