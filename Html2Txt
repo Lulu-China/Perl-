@@ -1,0 +1,109 @@
+#!usr/bin/perl
+
+use Cwd;
+use Encode;
+use utf8;
+binmode(STDIN, ':encoding(utf8)');
+binmode(STDOUT, ':encoding(utf8)');
+binmode(STDERR, ':encoding(utf8)');
+
+$CurrentDir = cwd();
+Convert($CurrentDir);
+
+sub fileHalf2Full 
+{
+	my $file = $_[0];
+
+	open(filein, $file);
+	open(fileout, $file.".tmp");
+
+	while(<filein>){
+		chomp; # remove newlines
+		$line=decode("gbk", $_);
+		
+		@words=$line=~/./g;
+		foreach (@words){
+			$word=encode("gbk", $_);
+			
+			if(ord($word) & 0x80){
+				if ($word !~ /^$/){
+					print fileout "$word";
+				}
+				next;
+			}else{
+				@code=unpack("C2", $word);
+				$word=pack("C2", 0xa3, $code[0]+0x80);
+				if ($word !~ /^$/){
+					print fileout "$word";
+				}
+			}
+		}
+		print fileout "\n";
+	}
+
+	close(filein);
+	close(fileout);
+
+	rename $file.".tmp", $file # mv file.out to file
+}
+
+sub Convert
+{
+	
+	my ($dir)=@_;
+	opendir(In, $dir);
+	@filelist=readdir(In);
+	foreach $file(@filelist)
+	{
+		# if(index($file, ".txt") != length($file)-4){
+		unless($file =~ /\.txt|\.TXT/){
+			next;
+		}
+		my $result = $dir."\\result\\".$file.".out";
+		mkdir($result);
+		chomp;
+		open(filein, $dir."\\".$file);
+		open(fileout, ">$result");
+
+		#read file
+		while(<filein>){
+			chomp; # remove newlines
+			$line=decode("gbk", $_);
+
+			#1.处理前缀
+			if ($line !~ /^@[COTUB]+:.*$/) {
+				next;
+			}
+			if ($line =~ /^\@C\s*:/) {       #@C:国际新闻 前面加换行，以区分篇章
+				print fileout "\n\n";
+			}
+			$line=~s/^@.+?:\s*//g;           #去掉前缀
+
+			#2.处理html代码
+			$line=~s/<p>//g;                 #处理段落标记 <p></p>, <p>替换为空
+			$line=~s/<\/p>/\n/g;             #处理段落标记 <p></p>, </p>替换为换行
+			$line=~s/<\s*a.*?href.*\/a>//g;  #处理超链接 <a href="URL"> </a>
+			$line=~s/&nbsp;//g;              #去掉空格
+			$line=~s/<strong>|<\/strong>//g; #去掉加粗标记
+			$line=~s/<!--.*-->//g;           #去掉html里的注释
+
+			#3.处理<,<<,|,{,[, >,>>,|,},]
+			$line=~s/<|<<|\||\{|\[/（/g;
+			$line=~s/>|>>|\}|\]/）/g;
+
+			$line=encode("gbk", $line);
+			if ($line !~ /^$/){
+				print fileout "$line\n";
+			}
+		}
+		close(filein);
+		close(fileout);
+
+		#将文件半角转全角
+		fileHalf2Full $result;
+
+		print "convert $file success\n";
+		# if (-f $dir."\\".$file) {unlink $dir."\\".$file;}
+	}
+	closedir(In);
+}
