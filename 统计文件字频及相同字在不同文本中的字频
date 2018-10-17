@@ -1,0 +1,79 @@
+use Cwd;
+use encode;
+use utf8;
+
+Statstical("t2.txt");
+Statstical("t1.txt");
+Compare("OUT_t1.txt","OUT_t2.txt");
+# Statstical("demo1.txt");
+# Statstical("demo2.txt");
+# Compare("OUT_demo1.txt","OUT_demo2.txt");
+
+sub Statstical(){
+	my $file = $_[0];
+	my %hash = ();
+	my $i = 0;
+	my @words = ();
+	
+	open(In,"$file");
+	while($lines = <In>){
+		chomp($lines);
+		$lines =~s/\w+//g; 
+		@words = split(" ",$lines);
+		foreach $word(sort @words){
+			if (defined $hash{$word}){
+				$hash{$word}++;
+			}else{
+				$hash{$word}=1;
+			}
+			$i++;	
+		}
+	}
+	close(In);
+	
+	open(Out,">OUT_$file");
+	foreach $ele(sort keys %hash){
+		$tf = $hash{$ele}*100/$i;
+		printf Out "%s %.4f%% %d\n", $ele,$tf,$hash{$ele};
+		# print Out "$ele $tf $hash{$ele}\n";
+	}
+	close(Out);
+	
+	print "$file success!\n";
+ }
+
+sub Compare()
+{
+	my $file1 = $_[0];
+	my $file2 = $_[1];
+	my %keysHash = ();
+	open(In,"$file1");
+	while($lines = <In>)
+	{
+		chomp($lines);
+		@wordArray = split(" ",$lines);
+		$keys = $wordArray[0];
+		$keysHash{$keys} = $lines;
+		# print "$keys -> $keysHash{$keys}\n";
+	}
+	close(In);
+	
+	# print "##############################\n";
+	open(Out,">Result.txt");
+	open(In2,"$file2");
+	while($lines2 = <In2>)
+	{
+		chomp($lines2);
+		# print"lines2=$lines2\n";
+		@wordArray2 = split(" ",$lines2);
+		$keys2 = $wordArray2[0];
+		# print "$keys2 -> $keysHash{$keys2}\n";
+		if (defined $keysHash{$keys2}){
+			@wordArray = split(" ",$keysHash{$keys2});
+			print Out "$keys2 ($wordArray[2], $wordArray[1]); ($wordArray2[2], $wordArray2[1])\n";
+		}
+	}
+	close (In2);
+	close(Out);
+	print"compare success\n";
+}
