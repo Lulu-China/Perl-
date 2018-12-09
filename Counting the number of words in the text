@@ -1,0 +1,43 @@
+#!usr/bin/perl
+use utf8;
+use Encode;
+use Cwd;
+$CurrentDir = cwd();
+Count($CurrentDir);
+
+sub Count
+{
+	
+	my ($dir)=@_;
+	opendir(In, $dir);
+	@filelist=readdir(In);
+	
+	foreach $file(@filelist)
+	{
+		unless($file =~ /\.txt|\.TXT/){
+			next;
+		}
+		chomp;
+		open(filein, $dir."\\".$file);
+		
+		$Number = 0;
+		
+		while(<filein>){
+			chomp; 
+			$line=decode("gbk", $_);
+			@words=$line=~/./g;
+			$b = @words;
+			$Number = $Number + $b;
+		}
+		print"$Number\n";
+		close(filein);
+    
+		if(rename($file,"$Number.$file")){
+			print"$file rename is successed!\n";
+		}else{
+			print"$file rename is failed\n";
+		}#将结果文件命名为旧文件
+	}
+	closedir(In);
+	
+}
