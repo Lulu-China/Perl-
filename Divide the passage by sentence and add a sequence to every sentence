@@ -1,0 +1,85 @@
+use utf8;
+use Encode;
+use Cwd;
+
+$dir = cwd();
+opendir(In, $dir);
+@filelist = readdir(In);
+closedir(In);
+mkdir("$dir/result");	
+
+foreach my $file(@filelist)
+{
+	# if(index($file, ".txt") != length($file)-4){
+	unless($file =~ /\.txt|\.TXT/){
+		next;
+	}
+	
+	SegSetence($file);
+}
+
+sub SegSetence(){
+	my $file = @_[0];
+	my $resfile = "result\\$file.out";
+	
+	open(filein, $file) or die "can not open $file: $!\n";
+	open(fileout, ">$resfile") or die "can not open $resfile: $!\n";
+
+	#read file
+	while(<filein>){
+		chomp;
+		$line = decode("gbk", $_);
+
+		$line =~ s/(：”)/\n \1/g;                  #将 {AAA说：“BBB。"} 中的：”前面添加换行
+		$line =~ s/([。？！；]+”)/\1 \n/g;          #将 {AAA说：“BBB。"}中的。“追加换行
+		# $line =~ s/(？”)/\1\n/g;
+		# $line =~ s/(？”)/\1\n/g;
+		$line =~ s/([。？:：！；]{1})(?<!")/\1 \n/g;  #将表示句子结束的符号后面追加换行。断言规则（https://www.cnblogs.com/iyangyuan/archive/2013/05/30/3107390.html）
+		$line =~ s/(……)/\1\n/g;                    #省略号后面追加换行
+
+		$line = encode("gbk", $line);
+		print "$line\n";
+		print fileout "$line\n";
+		# if($line !~ "。"){
+			# print fileout "\n";
+		# }
+	}
+
+	close(filein);
+	close(fileout);
+	
+	addLineId($resfile);
+}
+
+sub addLineId()
+{
+	my $file = @_[0];
+
+	open(filein, "$file") or die "can not open $file: $!\n";
+	open(fileout, ">$file.tmp") or die "can not open $file.tmp: $!\n";
+
+	#read file
+	$id = 0;
+	while(<filein>){
+		chomp;
+		$line = decode("gbk", $_);
+
+		$tmpline = $line;
+		$tmpline =~ s/\s//g;
+		if (length($tmpline) > 0)
+		{
+			$id = $id + 1;
+			$line = "$id $line";
+		}
+
+		$line = encode("gbk", $line);
+		print "$line\n";
+		print fileout "$line\n";
+	}
+
+	close(filein);
+	close(fileout);
+	
+	unlink($file);#删除旧文件
+	rename("$file.tmp", "$file");#将结果文件命名为旧文件
+}
