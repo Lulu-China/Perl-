@@ -1,0 +1,98 @@
+use utf8;
+use Encode;
+use Cwd;
+
+$dir = cwd();
+opendir(Dir,$dir);
+@file=readdir(Dir);
+close(Dir);
+
+foreach $file(@file){
+	unless($file =~ /\.txt/){
+		next;
+	}
+	if($file =~/([A-Z]+)_(.*)\.txt/){
+		$Name .= $1;
+		$FileName = $2;
+		# print $file = "$FileName _$Name";
+	}
+	# print file "$file\n";
+	$In="$dir"."/".$file;
+	Compare($In);
+}
+$OutFile=$FileName."_".$Name;
+
+open(Out,">$OutFile.txt");#以类型和人名命名输出文件
+foreach(sort {$a <=> $b} keys %hash){
+	$RefHash=$hash{$_};
+	foreach(sort keys %{$RefHash}){
+		print Out "$_ ";
+		$RefArr=${$RefHash}{$_};
+		foreach(@{$RefArr}){
+		
+			 # 判断数组中元素个数与处理的文件数是否相等，相等则标注一致
+			if(@{$RefArr} == 2){
+				print Out "#";	#标注一致则输出#
+			}else{
+				print Out "$_ ";
+			}
+		}
+		print Out "\n";
+	}
+	print Out "\n";
+}
+close(Out);
+Statistics("$OutFile.txt");
+
+
+sub Compare{
+	my($file1)=@_;
+	
+	open(In,$file1);
+	$i=0;
+	while(<In>){
+		chomp;
+		@lines=$_=~/[^。]+[。]*[\}\]]*/g;
+		# @lines=$_=~/[^，。]+[，。]*/g;
+		if($file1=~/([A-Z]+)_.*\.txt/){
+			$name="(".$1.")";
+		}
+		foreach(@lines){
+			$i++;
+			push(@{${$hash{$i}}{$_}},$name);
+
+		}	
+	}
+	close(In);
+}
+
+sub Statistics(){
+	my $file = @_[0];
+	
+	my $TotNumber = 0;
+	my $CorrNumber = 0;
+	my $ConRate = 0;
+	
+	open(filein, "$file") or die "can not open $file: $!\n";
+	while(<filein>){
+		chomp;
+		
+		if (/(^\d+)/){
+			$Number = ",".$1;
+		}
+		@TNumber = split(",",$Number);
+		
+		 if(/#$/){
+			$CorrNumber++ ."\n";
+		}	
+	}
+	$TotNumber = pop(@TNumber);
+	
+	print $ConRate = $CorrNumber/$TotNumber;	
+	close(filein);
+	
+	open(fileout, ">>Result.txt") or die "can not open $file.tmp: $!\n";
+		print fileout "$file  $Name  $ConRate\n";	
+	close(fileout);
+	
+}
